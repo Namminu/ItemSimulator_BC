@@ -9,6 +9,46 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model Items {
+  itemId          Int       @map("itemId")  @id  @default(autoincrement())
+
+  name            String    @map("name")
+  health          Int       @map("health")
+  power           Int       @map("power")
+  price           Int       @map("price")
+
+  @@map("Items")
+}
+
+model Accounts {
+  accountId       Int       @map("accountId")   @id @default(autoincrement())
+
+  email           String    @map("email")       @unique 
+  password        String    @map("password")
+  accountName     String    @map("accountName") @unique
+  createdAt       DateTime  @default(now())     @map("createdAt")
+  updatedAt       DateTime  @updatedAt          @map("updatedAt")
+
+  @@map("Accounts")
+
+  characters Characters[]
+}
+
+model Characters {
+  characterId     Int       @map("characterId") @id @default(autoincrement())
+  accountId       Int       @unique @map("accountId")
+
+  name            String    @map("name")    @unique
+  health          Int       @map("health")
+  power           Int       @map("power")
+  money           Int       @map("money")   @default(10000)
+
+  @@map("Characters")
+
+  account Accounts @relation(fields:[accountId], references: [accountId], onDelete:Cascade)
+}
+
