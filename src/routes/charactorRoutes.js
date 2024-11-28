@@ -39,7 +39,23 @@ router.post('/char/charMake', authMiddlewares, async (req, res, next) => {
 // 캐릭터 삭제 API - JWT 필요
 router.delete('/char/:charId/charDele', authMiddlewares, async (req, res, next) => {
     try {
+        if (!req.account) return res.status(401).json({ message: "로그인이 필요합니다." });
+        const charId = +req.params.charId;               // 사용자가 삭제하려는 캐릭터 ID
+        const jwtID = req.account.accountId;             // 사용자의 JWT 로 받은 계정의 ID
+        // 삭제하려는 캐릭터 데이터 전체
+        const character = await prisma.characters.findFirst({ where: { characterId: charId } });
 
+        // 데이터 유효성 검사
+        if (!character) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
+        console.log(jwtID);
+        console.log(character.accountId);
+        if (jwtID !== character.accountId) return res.status(403).json({ message: "타인의 캐릭터는 삭제할 수 없습니다." });
+
+        await prisma.characters.delete({
+            where: { characterId: charId }
+        });
+
+        return res.status(200).json({ message: "캐릭터가 정상적으로 삭제되었습니다." });
     } catch (err) {
         console.log(err);
         return res.status(500).json({

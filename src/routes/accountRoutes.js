@@ -17,6 +17,8 @@ router.post('/signUp', async (req, res, next) => {
     if (!idRegex.test(email)) return res.status(400).json({ message: "올바르지 않은 형식의 아이디입니다." });
     if (password.length < 6) return res.status(400).json({ message: "비밀번호는 최소 6자리 이상이어야 합니다." });
     if (password !== passwordCheck) return res.status(400).json({ message: "비밀번호 확인이 올바르지 않습니다." });
+    const isExistName = await prisma.Accounts.findFirst({ where: { accountName } });
+    if (isExistName) return res.status(409).json({ message: "이미 존재하는 계정 이름입니다." });
 
     // password 암호화
     const hashedPassword = await bcrypt.hash(password, 10);
