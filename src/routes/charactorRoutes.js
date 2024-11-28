@@ -47,8 +47,6 @@ router.delete('/char/:charId/charDele', authMiddlewares, async (req, res, next) 
 
         // 데이터 유효성 검사
         if (!character) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
-        console.log(jwtID);
-        console.log(character.accountId);
         if (jwtID !== character.accountId) return res.status(403).json({ message: "타인의 캐릭터는 삭제할 수 없습니다." });
 
         await prisma.characters.delete({
