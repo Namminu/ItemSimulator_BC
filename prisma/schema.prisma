@@ -40,11 +40,11 @@ model Accounts {
 
 model Characters {
   characterId     Int       @map("characterId") @id @default(autoincrement())
-  accountId       Int       @unique @map("accountId")
+  accountId       Int       @map("accountId")
 
   name            String    @map("name")    @unique
-  health          Int       @map("health")
-  power           Int       @map("power")
+  health          Int       @map("health")  @default(500)
+  power           Int       @map("power")   @default(100)
   money           Int       @map("money")   @default(10000)
 
   @@map("Characters")

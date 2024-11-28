@@ -10,7 +10,7 @@ export default async function (req, res, next) {
 
         // 토큰 타입 확인
         const [tokentype, token] = auth.split(' ');
-        if (tokentype === 'Bearer') throw new Error('토큰 타입이 올바른 형식이 아닙니다.');
+        if (tokentype !== 'Bearer') throw new Error('토큰 타입이 올바른 형식이 아닙니다.');
 
         // JWT 검증
         const decodedToken = jwt.verify(token, 'ISBC-secret-key');
