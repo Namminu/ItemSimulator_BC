@@ -103,4 +103,34 @@ router.get('/char/:charId/charSear', authMiddlewares, async (req, res, next) => 
     }
 });
 
+// 캐릭터 게임머니 증가 API
+router.patch('/char/:charId/showmethemoney', authMiddlewares, async (req, res, next) => {
+    try {
+        if (!req.account) return res.status(401).json({ message: "로그인이 필요합니다." });
+        const charId = +req.params.charId;
+        const targetChar = await prisma.characters.findFirst({ where: { characterId: charId } });
+
+        // 데이터 유효성 검사
+        if (!targetChar) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
+        const jwtID = req.account.accountId;
+        // 자신의 캐릭터가 아닐 경우
+        if (jwtID !== targetChar.accountId) return res.status(404).json({ message: "본인 캐릭터가 아닙니다." });
+        else {
+            const increaseMoney = targetChar.money + 100;
+            await prisma.characters.update({
+                where: { characterId: charId },
+                data: { money: increaseMoney }
+            });
+        }
+
+        return res.status(200).json({ message: "게임머니가 증가되었습니다.", data: targetChar.money });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            message: "서버 에러가 발생했습니다",
+            errorCode: err.message
+        });
+    }
+});
+
 export default router;

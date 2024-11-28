@@ -22,6 +22,9 @@ model Items {
   price           Int       @map("price")
 
   @@map("Items")
+
+  char_Inven Char_Invens[]
+  char_Item  Char_Items[]
 }
 
 model Accounts {
@@ -49,6 +52,29 @@ model Characters {
 
   @@map("Characters")
 
-  account Accounts @relation(fields:[accountId], references: [accountId], onDelete:Cascade)
+  account       Accounts    @relation(fields:[accountId], references: [accountId], onDelete:Cascade)
+  char_Inven    Char_Invens[]
+  char_Item     Char_Items[]
 }
 
+model Char_Invens {
+  invenItemId Int @map("invenItemId") @id @default(autoincrement())
+  characterId Int @map("characterId")
+  itemId      Int @map("itemId")
+
+  @@map("Char_Invens")
+
+  character Characters      @relation(fields: [characterId], references: [characterId])
+  item      Items           @relation(fields: [itemId],      references: [itemId],      onDelete:Cascade)
+}
+
+model Char_Items {
+  setItemId Int @map("setItemId") @id @default(autoincrement())
+  characterId Int @map("character")
+  itemId      Int @map("itemId")
+
+  @@map("Char_Items")
+
+  character Characters      @relation(fields: [characterId], references: [characterId])
+  item      Items           @relation(fields: [itemId],      references: [itemId],      onDelete:Cascade)
+}
