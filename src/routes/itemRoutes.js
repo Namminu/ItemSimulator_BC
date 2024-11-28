@@ -11,7 +11,7 @@ router.post('/', async (req, res, next) => {
         console.log(err);
         return res.status(500).json({
             message: "서버 에러가 발생했습니다",
-            errorCode: err
+            errorCode: err.message
         });
     }
 });
@@ -24,7 +24,7 @@ router.patch('/item/:itemId', async (req, res, next) => {
         console.log(err);
         return res.status(500).json({
             message: "서버 에러가 발생했습니다",
-            errorCode: err
+            errorCode: err.message
         });
     }
 });
@@ -37,7 +37,7 @@ router.get('/item', async (req, res, next) => {
         console.log(err);
         return res.status(500).json({
             message: "서버 에러가 발생했습니다",
-            errorCode: err
+            errorCode: err.message
         });
     }
 });

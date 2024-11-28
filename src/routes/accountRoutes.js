@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../utils/prisma/index.js'
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
@@ -35,7 +36,7 @@ router.post('/signUp', async (req, res, next) => {
     console.log(err);
     return res.status(500).json({
       message: "서버 에러가 발생했습니다",
-      errorCode: err
+      errorCode: err.message
     });
   }
 });
@@ -46,17 +47,21 @@ router.post('/signIn', async (req, res, next) => {
     const { email, password } = req.body;
 
     // 받은 데이터 유효성 검사
-    if (/*아이디가 존재하지 않을 경우*/1) return res.status(400).json({ message: "등록되지 않은 아이디입니다." });
-    if (/*비밀번호가 일치하지 않을 경우*/1) return res.status(400).json({ message: "잘못된 비밀번호입니다." });
+    const alreayAccount = await prisma.Accounts.findFirst({ where: { email } });
+    if (!alreayAccount) return res.status(400).json({ message: "등록되지 않은 아이디입니다." });
+    else if (!(await bcrypt.compare(password, alreayAccount.password)))
+      return res.status(400).json({ message: "잘못된 비밀번호입니다." });
 
-    // 로그인 처리 로직
+    // JWT 토큰 생성
+    const token = jwt.sign({ accountId: alreayAccount.accountId }, 'ISBC-secret-key');
+    res.cookie('auth', `Bearer ${token}`);
 
     return res.status(201).json({ message: "로그인 되었습니다." });
   } catch (err) {
     console.log(err);
     return res.status(500).json({
       message: "서버 에러가 발생했습니다",
-      errorCode: err
+      errorCode: err.message
     });
   }
 });
