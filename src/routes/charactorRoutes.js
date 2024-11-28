@@ -63,10 +63,37 @@ router.delete('/char/:charId/charDele', authMiddlewares, async (req, res, next) 
     }
 });
 
-// 캐릭터 상세 조회 API
-router.get('/char/:charId/charSear', async (req, res, next) => {
+// 캐릭터 상세 조회 API - JWT 사용
+router.get('/char/:charId/charSear', authMiddlewares, async (req, res, next) => {
     try {
+        if (!req.account) return res.status(401).json({ message: "로그인이 필요합니다." });
+        const charId = +req.params.charId;
+        const targetChar = await prisma.characters.findFirst({ where: { characterId: charId } });
 
+        // 데이터 유효성 검사
+        if (!targetChar) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
+
+        const jwtID = req.account.accountId;
+        let data;
+        // 자신의 캐릭터가 아닐 경우
+        if (jwtID !== targetChar.accountId) {
+            data = {
+                name: targetChar.name,
+                health: targetChar.health,
+                power: targetChar.power
+            }
+            return res.status(200).json({ data });
+        }
+        // 자신의 캐릭터일 경우
+        else {
+            data = {
+                name: targetChar.name,
+                health: targetChar.health,
+                power: targetChar.power,
+                money: targetChar.money
+            }
+            return res.status(200).json({ data });
+        }
     } catch (err) {
         console.log(err);
         return res.status(500).json({
