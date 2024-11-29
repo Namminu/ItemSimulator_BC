@@ -90,6 +90,21 @@ router.delete('/item/:charId/sellItem', authMiddlewares, async (req, res, next) 
             data: { itemCount: restCount }
         });
 
+        // if (inv_settingItem.itemCount <= 1) {
+        //     await prisma.char_Invens.delete({
+        //         where: { itemId: settingItemCode }
+        //     });
+        // }
+        // else {
+        //     const updateCount = inv_settingItem.itemCount - 1;
+        //     await prisma.char_Invens.update({
+        //         where: { itemId: settingItemCode },
+        //         data: {
+        //             itemCount: updateCount
+        //         }
+        //     });
+        // }
+
         return res.status(200).json({ message: "아이템을 판매하였습니다.", currentMoney: myChar.money });
     } catch (err) {
         console.log(err);
@@ -127,7 +142,23 @@ router.get('/char/:charId/invenSear', authMiddlewares, async (req, res, next) =>
 
 // 캐릭터 장착 아이템 목록 조회 API
 router.get('/char/:charId/setItemSear', async (req, res, next) => {
+    try {
+        const charId = +req.params.charId;
+        const items = await prisma.char_Items.findMany({ where: { characterId: { equals: charId } } });
 
+        if (!items.length) return res.status(404).json({ message: "장착한 아이템이 없습니다." });
+        const itemList = items.map(item => ({
+            item_code: item.itemId,
+            item_name: item.itemName,
+        }));
+        return res.status(200).json(itemList);
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            message: "서버 에러가 발생했습니다",
+            errorCode: err.message
+        });
+    }
 });
 
 // 아이템 장착 AP - JWT
@@ -139,7 +170,53 @@ router.post('/char/:charId/setUpItem', authMiddlewares, async (req, res, next) =
         // 데이터 유효성 검사
         if (!myChar) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
 
+        // 이전 장착 여부 및 유효성 검사
+        const settingItemCode = +req.body.itemId;
+        const inv_settingItem = await prisma.char_Invens.findFirst({ where: { itemId: settingItemCode } });
+        if (!inv_settingItem) return res.status(404).json({ message: "인벤토리에 존재하지 않는 아이템입니다." });
+        const set_settingItem = await prisma.char_Items.findFirst({ where: { itemId: settingItemCode } });
+        if (set_settingItem) return res.status(400).json({ message: "이미 장착된 아이템입니다." });
+        console.log(inv_settingItem);
 
+        const setUpItem = await prisma.items.findFirst({ where: { itemId: settingItemCode } });
+        // 캐릭터 능력치 조정
+        const updateHealth = myChar.health + setUpItem.health;
+        const updatePower = myChar.power + setUpItem.power;
+        await prisma.characters.update({
+            where: { characterId: charId },
+            data: {
+                power: updatePower,
+                health: updateHealth
+            }
+        });
+
+        // 장비칸으로 데이터 이동
+        await prisma.char_Items.create({
+            data: {
+                characterId: myChar.characterId,
+                itemId: settingItemCode,
+                itemName: setUpItem.name,
+            }
+        });
+
+        // 인벤토리에서 데이터 조정
+        if (inv_settingItem.itemCount <= 1) {
+            await prisma.char_Invens.delete({
+                where: { itemId: settingItemCode }
+            });
+        }
+        else {
+            const updateCount = inv_settingItem.itemCount - 1;
+            await prisma.char_Invens.update({
+                where: { itemId: settingItemCode },
+                data: {
+                    itemCount: updateCount
+                }
+            });
+        }
+
+        const currentStat = { health: myChar.health, power: myChar.power };
+        return res.status(200).json({ message: "아이템을 장착했습니다.", currentStat })
     } catch (err) {
         console.log(err);
         return res.status(500).json({
@@ -154,11 +231,58 @@ router.delete('/char/:charId/setOffItem', authMiddlewares, async (req, res, next
     try {
         if (!req.account) return res.status(401).json({ message: "로그인이 필요합니다." });
         const charId = +req.params.charId;
+        console.log(charId);
         const myChar = await prisma.characters.findFirst({ where: { characterId: charId } });
+        console.log(myChar);
         // 데이터 유효성 검사
         if (!myChar) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
 
+        // 이전 장착 여부 및 유효성 검사
+        const setOffItemCode = +req.body.itemId;
+        const setOffItem = await prisma.char_Items.findFirst({ where: { itemId: setOffItemCode } });
+        if (!setOffItem) return res.status(400).json({ message: "장착하지 않은 아이템입니다." });
+        const set_setOffItem = await prisma.char_Invens.findFirst({ where: { itemId: setOffItemCode } });
+        if (set_setOffItem) return res.status(404).json({ message: "이미 해제된 아이템입니다." });
 
+        const setItem = await prisma.items.findFirst({ where: { itemId: setOffItemCode } });
+
+        // 캐릭터 능력치 조정
+        const updateHealth = myChar.health - setItem.health;
+        const updatePower = myChar.power - setItem.power;
+        await prisma.characters.update({
+            where: { characterId: charId },
+            data: {
+                health: updateHealth,
+                power: updatePower
+            }
+        });
+
+        // 인벤토리로 데이터 이동
+        const inv_item = await prisma.char_Invens.findFirst({ where: { itemId: setOffItemCode } })
+        if (!inv_item) {
+            await prisma.char_Invens.create({
+                data: {
+                    characterId: myChar.characterId,
+                    itemId: settingItemCode,
+                    itemName: settingItemCode.name,
+                }
+            });
+        }
+        else {
+            const restCount = sellItem.itemCount + 1;
+            await prisma.char_Invens.update({
+                where: { itemId },
+                data: { itemCount: restCount }
+            });
+        }
+
+        // char_items 에서 데이터 삭제
+        await prisma.char_Items.delete({
+            where: { itemId: setOffItemCode }
+        });
+
+        const currentStat = { health: myChar.health, power: myChar.power };
+        return res.status(200).json({ message: "아이탬을 해제하였습니다.", currentStat })
     } catch (err) {
         console.log(err);
         return res.status(500).json({
