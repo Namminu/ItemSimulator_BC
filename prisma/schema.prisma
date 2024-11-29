@@ -61,6 +61,7 @@ model Char_Invens {
   invenItemId Int @map("invenItemId") @id @default(autoincrement())
   characterId Int @map("characterId")
   itemId      Int @map("itemId")
+  itemCount   Int @map("itemCount")
 
   @@map("Char_Invens")
 
