@@ -30,13 +30,26 @@ router.post('/item/:charId/buyItem', authMiddlewares, async (req, res, next) => 
         });
 
         // char_Invens 테이블에 데이터 추가
-        await prisma.char_Invens.create({
-            data: {
-                characterId: charId,
-                itemId: itemId,
-                itemCount: count
-            }
-        });
+        console.log(itemId);
+        const alreadyItem = await prisma.char_Invens.findFirst({ where: { itemId } })
+        if (!alreadyItem) {
+            console.log("없을 경우");
+            await prisma.char_Invens.create({
+                data: {
+                    characterId: charId,
+                    itemId: itemId,
+                    itemCount: count
+                }
+            });
+        }
+        else {
+            console.log("있을 경우");
+            alreadyItem.itemCount += count;
+            await prisma.char_Invens.update({
+                where: { itemId },
+                data: { itemCount: alreadyItem.itemCount }
+            });
+        }
 
         return res.status(200).json({ message: "아이템 구매에 성공했습니다.", currentMoney: myChar.money })
     } catch (err) {
@@ -56,6 +69,14 @@ router.delete('/item/:charId/sellItem', authMiddlewares, async (req, res, next) 
         const myChar = await prisma.characters.findFirst({ where: { characterId: charId } });
         // 데이터 유효성 검사
         if (!myChar) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
+
+        // 아이템 보유중 검사
+        const { itemId, count } = req.body;
+        const sellItem = await prisma.char_Invens.findFirst({ where: { itemId } });
+        if (!sellItem) return res.status(404).json({ message: "해당 아이템이 존재하지 않습니다." });
+        if (count > sellItem.itemCount) return res.status(400).json({ message: "보유한 아이템 수량이 부족합니다." });
+
+        sdf
 
 
     } catch (err) {
