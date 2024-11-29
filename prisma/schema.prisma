@@ -62,6 +62,7 @@ model Char_Invens {
   characterId Int @map("characterId")
   itemId      Int @map("itemId")      @unique
   itemCount   Int @map("itemCount")
+  itemName    String @map("itemName")
 
   @@map("Char_Invens")
 
@@ -73,7 +74,8 @@ model Char_Items {
   setItemId Int @map("setItemId") @id @default(autoincrement())
   characterId Int @map("character")
   itemId      Int @map("itemId")
-
+  itemName    String @map("itemName")
+  
   @@map("Char_Items")
 
   character Characters      @relation(fields: [characterId], references: [characterId])

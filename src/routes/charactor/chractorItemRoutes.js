@@ -36,7 +36,8 @@ router.post('/item/:charId/buyItem', authMiddlewares, async (req, res, next) => 
                 data: {
                     characterId: charId,
                     itemId: itemId,
-                    itemCount: count
+                    itemCount: count,
+                    itemName: targetItem.name
                 }
             });
         }
@@ -108,7 +109,13 @@ router.get('/char/:charId/invenSear', authMiddlewares, async (req, res, next) =>
         // 데이터 유효성 검사
         if (!myChar) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
 
-
+        const items = await prisma.char_Invens.findMany({ where: { characterId: charId } });
+        const itemList = items.map(item => ({
+            item_code: item.itemId,
+            item_name: item.itemName,
+            item_count: item.itemCount
+        }));
+        return res.status(200).json(itemList);
     } catch (err) {
         console.log(err);
         return res.status(500).json({
