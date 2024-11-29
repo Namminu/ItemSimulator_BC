@@ -73,7 +73,7 @@ model Char_Invens {
 model Char_Items {
   setItemId Int @map("setItemId") @id @default(autoincrement())
   characterId Int @map("characterId")
-  itemId      Int @map("itemId")
+  itemId      Int @map("itemId")  @unique
   itemName    String @map("itemName")
 
   @@map("Char_Items")

@@ -237,18 +237,15 @@ router.delete('/char/:charId/setOffItem', authMiddlewares, async (req, res, next
         // 데이터 유효성 검사
         if (!myChar) return res.status(404).json({ message: "해당하는 캐릭터가 존재하지 않습니다." });
 
-        // 이전 장착 여부 및 유효성 검사
-        const setOffItemCode = +req.body.itemId;
-        const setOffItem = await prisma.char_Items.findFirst({ where: { itemId: setOffItemCode } });
-        if (!setOffItem) return res.status(400).json({ message: "장착하지 않은 아이템입니다." });
-        const set_setOffItem = await prisma.char_Invens.findFirst({ where: { itemId: setOffItemCode } });
-        if (set_setOffItem) return res.status(404).json({ message: "이미 해제된 아이템입니다." });
+        const itemId = +req.body.itemId;
+        const setItem = await prisma.char_Items.findFirst({ where: { itemId } });
+        if (!setItem) return res.status(400).json({ message: "장착하지 않은 아이템입니다." });
 
-        const setItem = await prisma.items.findFirst({ where: { itemId: setOffItemCode } });
+        const targetItem = await prisma.items.findFirst({ where: { itemId } });
 
         // 캐릭터 능력치 조정
-        const updateHealth = myChar.health - setItem.health;
-        const updatePower = myChar.power - setItem.power;
+        const updateHealth = myChar.health - targetItem.health;
+        const updatePower = myChar.power - targetItem.power;
         await prisma.characters.update({
             where: { characterId: charId },
             data: {
@@ -258,27 +255,30 @@ router.delete('/char/:charId/setOffItem', authMiddlewares, async (req, res, next
         });
 
         // 인벤토리로 데이터 이동
-        const inv_item = await prisma.char_Invens.findFirst({ where: { itemId: setOffItemCode } })
-        if (!inv_item) {
+        const inv_Item = await prisma.char_Invens.findFirst({ where: { itemId } });
+        if (!inv_Item) {
             await prisma.char_Invens.create({
                 data: {
-                    characterId: myChar.characterId,
-                    itemId: settingItemCode,
-                    itemName: settingItemCode.name,
+                    characterId: charId,
+                    itemCount: 1,
+                    itemId: itemId
+                }
+            });
+        } else {
+            const inv_count = inv_Item.itemCount++;
+            await prisma.char_Invens.update({
+                where: { itemId },
+                data: {
+                    itemCount: inv_count
                 }
             });
         }
-        else {
-            const restCount = sellItem.itemCount + 1;
-            await prisma.char_Invens.update({
-                where: { itemId },
-                data: { itemCount: restCount }
-            });
-        }
 
-        // char_items 에서 데이터 삭제
+        const tempId = await prisma.char_Items.findFirst({ where: { itemId } });
+        console.log(tempId);
+        // 장비칸에서 데이터 삭제
         await prisma.char_Items.delete({
-            where: { itemId: setOffItemCode }
+            where: { itemId }
         });
 
         const currentStat = { health: myChar.health, power: myChar.power };
